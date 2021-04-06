@@ -1,6 +1,8 @@
 #include "include/trainer.h"
 
 #include "include/move.h"
+#include "include/effects.h"
+
 #include <stdlib.h>
 
 int8_t statusMoveEffects[];
@@ -33,7 +35,24 @@ void mod_1(Pokemon_t* pokemon, Pokemon_t* opponent, uint8_t priorityArray[4]) {
 }
 
 void mod_2(Pokemon_t* pokemon, Pokemon_t* opponent, uint8_t priorityArray[4]) {
-    // TODO: Implement modification 2
+    // Not sure if this works correctly
+    
+    for (uint8_t moveIndex = 0; moveIndex < MAX_MOVES; moveIndex++) {
+        uint8_t move = pokemon->moves[moveIndex];
+        if (move == 0) continue;
+
+        Move m = moves[move];
+        
+        if (m.effect < ATTACK_UP1_EFFECT) {
+            continue;
+        } else if (m.effect < BIDE_EFFECT) {
+            priorityArray[moveIndex] -= 1;
+        } else if (m.effect < ATTACK_UP2_EFFECT) {
+            continue;
+        } else if (m.effect < POISON_EFFECT) {
+            priorityArray[moveIndex] -= 1;
+        }
+    }
 }
 
 void mod_3(Pokemon_t* pokemon, Pokemon_t* opponent, uint8_t priorityArray[4]) {
