@@ -4,6 +4,8 @@ import struct
 
 FIRST_POKEMON_ENTRY = 0x0383DE
 
+DEX_ORDER = 0x41024 # Possibly 0x41023
+
 NUM_POKEMON = 151
 
 pokemon = {}
