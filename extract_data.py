@@ -4,11 +4,14 @@ import struct
 
 FIRST_POKEMON_ENTRY = 0x0383DE
 
-DEX_ORDER = 0x41024 # Possibly 0x41023
+DEX_ORDER_ADDRESS = 0x41024 # Possibly 0x41023
+MAX_INDEX = 0xBE
 
 NUM_POKEMON = 151
 
 pokemon = {}
+
+dex_order = []
 
 # Extract pokemon data
 
@@ -16,6 +19,12 @@ def read_bytes(file, size):
     return int.from_bytes(file.read(size), byteorder="little")
 
 with open("pokemon.gb", "rb") as file:
+    file.seek(DEX_ORDER_ADDRESS)
+    for i in range(MAX_INDEX):
+        dex_num = read_bytes(file, 1)
+
+        dex_order.append(dex_num)
+
     file.seek(FIRST_POKEMON_ENTRY)
 
     for i in range(NUM_POKEMON):
@@ -46,8 +55,10 @@ with open("pokemon.gb", "rb") as file:
 if not os.path.exists("data"):
     os.mkdir("data")
 
-for key, value in pokemon.items():
-    print(key, value, "\n")
+print(str(dex_order))
+
+#for key, value in pokemon.items():
+#    print(key, value, "\n")
 
 # Output data to json file
 with open("data/pokemon.json", "w") as json_file:
