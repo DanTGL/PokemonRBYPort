@@ -2,6 +2,8 @@ import os
 import json
 import struct
 
+from tools.extract_sprite import *
+
 FIRST_POKEMON_ENTRY = 0x0383DE
 
 DEX_ORDER_ADDRESS = 0x41024 # Possibly 0x41023
@@ -11,7 +13,7 @@ NUM_POKEMON = 151
 
 pokemon = {}
 
-dex_order = []
+dex_order = [0]
 
 # Extract pokemon data
 
@@ -26,6 +28,8 @@ with open("pokemon.gb", "rb") as file:
         dex_order.append(dex_num)
 
     file.seek(FIRST_POKEMON_ENTRY)
+
+    printed_sprite = False
 
     for i in range(NUM_POKEMON):
         dex_num = struct.unpack("B", file.read(1))[0]
@@ -48,14 +52,23 @@ with open("pokemon.gb", "rb") as file:
         pokemon[dex_num]["Lvl1Attacks"] = [read_bytes(file, 1) for i in range(4)]
         pokemon[dex_num]["GrowthRate"] = read_bytes(file, 1)
         pokemon[dex_num]["MoveFlags"] = read_bytes(file, 7)
-        
+
         # Read and discard padding
         file.read(1)
+
+        # Only print out sprite once as a test
+        # This will be removed in the future
+        if not printed_sprite:
+            cur_off = file.tell()
+            print_sprite(file, dex_order.index(dex_num), pokemon[dex_num]["fSpritePtr"], pokemon[dex_num]["SpriteDims"])
+            file.seek(cur_off)
+            
+            printed_sprite = True
 
 if not os.path.exists("data"):
     os.mkdir("data")
 
-print(str(dex_order))
+#print(str(dex_order))
 
 #for key, value in pokemon.items():
 #    print(key, value, "\n")
