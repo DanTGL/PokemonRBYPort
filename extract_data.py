@@ -60,7 +60,7 @@ with open("pokemon.gb", "rb") as file:
         # This will be removed in the future
         if not printed_sprite:
             cur_off = file.tell()
-            rom = decomp_sprite(file, pokemon[dex_num]["fSpritePtr"], pokemon[dex_num]["SpriteDims"])
+            rom = decomp_sprite(file, pokemon[dex_num]["fSpritePtr"], pokemon[dex_num]["SpriteDims"], dex_order.index(dex_num))
             #print_sprite(file, dex_order.index(dex_num), pokemon[dex_num]["fSpritePtr"], pokemon[dex_num]["SpriteDims"])
             file.seek(cur_off)
             

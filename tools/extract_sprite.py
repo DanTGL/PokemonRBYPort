@@ -17,13 +17,13 @@ def rle(it, width, height):
     packet = next(it)
     print(width, height)
     try:
-        while len(out) / 2 < width * height * 8:
+        while len(out) / 2 < width * height * 64:
 
             if True:
                 bits = []
 
                 while True:
-                    if len(out) / 2 >= width * height * 8:
+                    if len(out) / 2 >= width * height * 64:
                         return out
 
                     bit = next(it)
@@ -52,16 +52,23 @@ def rle(it, width, height):
 
     return out
 
-def decomp_sprite(rom, addr, dims):
-    rom.seek(addr)
+def decomp_sprite(rom, addr, dims, id):
+    #print("Address: " + str(get_bank(id) * 0x4000 + addr % 0x4000))
     
-    #dims = read_bytes(rom, 1)
+    offset = get_offset(id, addr)
+    #offset = get_bank(id) * 0x4000 + addr % 0x4000
+    rom.seek(offset)
+    print(offset)
+    
+    #read_bytes(rom, 1)
     width = (dims >> 4) & 0x0F
     height = dims & 0x0F
 
     bits = bitarray.bitarray()
     bits.fromfile(rom, POKEMON_SPRITE_MAX_BYTES)
     
+    print(bits.to01())
+
     #print(bits)
 
     bit_iter = iter(bits)
@@ -72,7 +79,37 @@ def decomp_sprite(rom, addr, dims):
 
     #prev_bit = initial_packet
 
-    print("\n".join(wrap(rle(bit_iter, width, height).to01(), width=width * 4)))
+    #out = [][height]
+
+
+    sprite_array = rle(bit_iter, width, height).tolist()
+    #print(len(sprite_array))
+    #print(sprite_array)
+
+    split_array = [[0 for i in range(height * 8)] for j in range(width * 8)]
+    for y in range(height * 8):
+        for x in range(width * 8):
+            #print(x, y)
+            if x >= len(split_array):
+                pass
+                #print("test")
+                #split_array.append([])
+                #print(len(split_array[0]))
+            split_array[x][y] = "1" if sprite_array[x + y * width * 8] == True else "0"
+
+    #split_array = [ for x in range(width * 8) for y in range(height)]
+    
+    for i in range(len(split_array)):
+        #for j in range(len(split_array[i])):
+        print("".join(split_array[i]))
+        #print()
+
+    output_list = "".join(["".join(split_array[i]) for i in range(len(split_array))])
+    print(output_list)
+
+    test_print_sprite(BytesIO(bitarray.bitarray(output_list).tobytes()), width, height)
+
+    #print("\n".join(wrap(rle(bit_iter, width, height).to01(), width=width * 4)))
 
 def get_bank(id):
     if id == 0x15:
@@ -91,7 +128,10 @@ def get_bank(id):
         return 0x0D
 
 def get_offset(id, ptr):
-    return ((get_bank(id) - 1) << 14) + ptr
+    bank = get_bank(id)
+    print(bank)
+    print(ptr)
+    return ((get_bank(id) - 1) << 14) + (ptr & 0x3FFF)
 
 def get_size(spr_dims):
     return ((spr_dims >> 4) & 0x0F), (spr_dims & 0x0F)
@@ -118,6 +158,8 @@ def print_sprite_at_addr(rom, addr, width, height):
 def print_sprite(rom, id, ptr, spr_dims):
     offset = get_offset(id, ptr)
     width, height = get_size(spr_dims)
+    print("Offset: " + str(offset))
+    print(width, height)
 
     rom.seek(offset)
 
@@ -135,26 +177,28 @@ def print_sprite(rom, id, ptr, spr_dims):
         if tile_index % width == width - 1:
             print()
 
-def test_print_sprite(sprite_buffer):
-    for tile_index in range(1 * 8):
+def test_print_sprite(sprite_buffer, width, height):
+    for tile_index in range(width * height * 8):
         value = read_bytes(sprite_buffer, 2)
         bits = []
 
 
         for bit in range(8 - 1, -1, -1):
+            
             pixel = (((value >> (bit + 8 - 1)) & 0x2) | ((value >> bit) & 0x1)) & 0x03
+            #pixel = (value >> bit) & 0x1
 
             bits.append(pixel)
         
         for b in bits:
             print(str(b) if b != 0 else ".", end="")
 
-        if tile_index % 1 == 1 - 1:
+        if tile_index % width == width - 1:
             print()
 
 
 if __name__ == "__main__":
-    test_print_sprite(BytesIO(b"\xFF\x00\x7E\xFF\x85\x81\x89\x83\x93\x85\xA5\x8B\xC9\x97\x7E\xFF"))
-    #test_print_sprite(BytesIO(b"\x7C\x7C\x00\xC6\xC6\x00\x00\xFE\xC6\xC6\x00\xC6\xC6\x00\x00\x00"))
+    #test_print_sprite(BytesIO(b"\xFF\x00\x7E\xFF\x85\x81\x89\x83\x93\x85\xA5\x8B\xC9\x97\x7E\xFF"), 2, 2)
+    test_print_sprite(BytesIO(b"\x7C\x7C\x00\xC6\xC6\x00\x00\xFE\xC6\xC6\x00\xC6\xC6\x00\x00\x00"), 1, 1)
     bit_iter = iter(bitarray.bitarray("01001101100110100011111110100011011110110101000"))
-    print(rle(bit_iter, 2, 2).to01())
+    print(test_print_sprite(BytesIO(rle(bit_iter, 2, 2).tobytes()), 2, 2))
