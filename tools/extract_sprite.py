@@ -1,5 +1,5 @@
 from io import BytesIO
-from math import ceil
+from math import ceil, floor
 from textwrap import wrap
 
 import bitarray
@@ -10,6 +10,20 @@ POKEMON_SPRITE_MAX_BYTES = ceil(3136 / 8)
 def read_bytes(file, size):
     return int.from_bytes(file.read(size), byteorder="little")
 
+def delta_decode(list):
+    result = []
+
+    prev_bit = False
+
+    for b in list:
+        if b == False:
+            result.append(prev_bit)
+        else:
+            prev_bit = not prev_bit
+            result.append(prev_bit)
+
+    return result
+
 def rle(it, width, height):
     
     out = bitarray.bitarray()
@@ -17,13 +31,13 @@ def rle(it, width, height):
     packet = next(it)
     print(width, height)
     try:
-        while len(out) / 2 < width * height * 64:
+        while len(out) < width * height * 64:
 
             if True:
                 bits = []
 
                 while True:
-                    if len(out) / 2 >= width * height * 64:
+                    if len(out) >= width * height * 64:
                         return out
 
                     bit = next(it)
@@ -60,14 +74,17 @@ def decomp_sprite(rom, addr, dims, id):
     rom.seek(offset)
     print(offset)
     
-    #read_bytes(rom, 1)
+    dims = read_bytes(rom, 1)
+    
     width = (dims >> 4) & 0x0F
     height = dims & 0x0F
 
     bits = bitarray.bitarray()
-    bits.fromfile(rom, POKEMON_SPRITE_MAX_BYTES)
+    bits.fromfile(rom, POKEMON_SPRITE_MAX_BYTES * 8)
+
     
-    print(bits.to01())
+    
+    #print(bits.to01())
 
     #print(bits)
 
@@ -83,31 +100,65 @@ def decomp_sprite(rom, addr, dims, id):
 
 
     sprite_array = rle(bit_iter, width, height).tolist()
-    #print(len(sprite_array))
+    #print(sprite_array)
+    
+    encoding_mode = 0
+    if next(bit_iter):
+        encoding_mode = 2 if next(bit_iter) else 1
+
+    print("Primary buffer:", "1" if primary_buffer else "0")
+
+    print("Encoding:", encoding_mode)
+
+    #print(sprite_array)
     #print(sprite_array)
 
-    split_array = [[0 for i in range(height * 8)] for j in range(width * 8)]
-    for y in range(height * 8):
-        for x in range(width * 8):
+    #print(arr)
+
+    decoded_array = [[False for i in range(height * 16)] for j in range(width * 8)]
+
+    for i in range(0, width * height * 64, 2):
+        x = floor(i / (height * 8))
+        y = floor((i + 1) % (height * 8))
+
+        decoded_array[y][x] = sprite_array[i]
+        decoded_array[y][x + 1] = sprite_array[i + 1]
+
+    arr = delta_decode([item for subl in decoded_array for item in subl])
+    print(arr)
+    split_array = [["" for i in range(height * 8)] for j in range(width * 8)]
+    for x in range(width * 8):
+        for y in range(0, height * 8, 2):
             #print(x, y)
-            if x >= len(split_array):
-                pass
                 #print("test")
                 #split_array.append([])
                 #print(len(split_array[0]))
-            split_array[x][y] = "1" if sprite_array[x + y * width * 8] == True else "0"
-
+            split_array[x][y] = "1" if sprite_array[y + x * height * 8] == True else "0"
+            split_array[x][y + 1] = "1" if sprite_array[y + 1 + x * height * 8] == True else "0"
+    #print(split_array)
     #split_array = [ for x in range(width * 8) for y in range(height)]
     
-    for i in range(len(split_array)):
-        #for j in range(len(split_array[i])):
-        print("".join(split_array[i]))
-        #print()
+    pixels = ["" for i in range(len(split_array))]
 
-    output_list = "".join(["".join(split_array[i]) for i in range(len(split_array))])
+    for y in range(len(split_array)):
+        s = ""
+        for x in range(len(split_array[y])):
+            s += split_array[y][x]
+        #for j in range(len(split_array[i])):
+        #print("".join(split_array[i]))
+        pixels[y] = s
+        #pixels[y] = ""
+        #print("".join(map(lambda x: "1" if x == True else "0", delta_decode([True if c == "1" else False for c in split_array[i]]))))
+        #print()
+        print(pixels[y])
+
+
+
+    #print(pixels)
+    output_list = "".join(["".join(pixels[i]) for i in range(len(pixels))])
     print(output_list)
 
-    test_print_sprite(BytesIO(bitarray.bitarray(output_list).tobytes()), width, height)
+    #test_print_sprite(BytesIO(bitarray.bitarray(output_list).tobytes()), width, height)
 
     #print("\n".join(wrap(rle(bit_iter, width, height).to01(), width=width * 4)))
 
@@ -131,7 +182,7 @@ def get_offset(id, ptr):
     bank = get_bank(id)
     print(bank)
     print(ptr)
-    return ((get_bank(id) - 1) << 14) + (ptr & 0x3FFF)
+    return ((get_bank(id)) << 14) + (ptr & 0x3FFF)
 
 def get_size(spr_dims):
     return ((spr_dims >> 4) & 0x0F), (spr_dims & 0x0F)
