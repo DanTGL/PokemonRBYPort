@@ -5,6 +5,8 @@ from textwrap import wrap
 import bitarray
 from bitarray.util import pprint
 
+import png
+
 POKEMON_SPRITE_MAX_BYTES = ceil(3136 / 8)
 
 def read_bytes(file, size):
@@ -28,41 +30,50 @@ def rle(it, width, height):
     
     out = bitarray.bitarray()
 
+    
     packet = next(it)
     print(width, height)
-    try:
-        while len(out) < width * height * 64:
+    passed_initial = False
+    while len(out) < width * height * 64 - 1:
 
-            if True:
-                bits = []
-
-                while True:
-                    if len(out) >= width * height * 64:
-                        return out
-
-                    bit = next(it)
-
-                    bits.append(bit)
-
-                    if bit == 0:
-                        break
-                
-                # Code has not been tested yet
-                num1 = sum((1 if bits[i] == True else 0) << i for i in range(len(bits) - 1, -1, -1))
-                num2 = sum((1 if next(it) == True else 0) << i for i in range(len(bits) - 1, -1, -1))
-
-                out.extend([False for i in range((num1 + num2 + 1) * 2)])
+        if passed_initial or (not passed_initial and not packet):
+            bits = []
 
             while True:
+                if len(out) >= width * height * 64 - 1:
+                    return out
+
+                bit = next(it)
+
+                bits.append(bit)
+
+                if bit == 0:
+                    break
+            
+            # Code has not been tested yet
+            num1 = sum((1 if bits[i] == True else 0) << i for i in range(len(bits) - 1, -1, -1))
+            num2 = sum((1 if next(it) == True else 0) << i for i in range(len(bits) - 1, -1, -1))
+
+            out.extend([False for i in range((num1 + num2 + 1) * 2)])
+
+            if not passed_initial:
+                passed_initial = True
+
+        if passed_initial or (not passed_initial and packet):
+            while True:
+                if len(out) >= width * height * 64 - 1:
+                    return out
+
                 bit1 = next(it)
                 bit2 = next(it)
 
                 if bit1 == bit2 == False:
                     break
-
+                
                 out.extend([bit1, bit2])
-    except StopIteration:
-        pass
+        
+            if not passed_initial:
+                passed_initial = True
 
     return out
 
@@ -115,18 +126,20 @@ def decomp_sprite(rom, addr, dims, id):
 
     #print(arr)
 
-    decoded_array = [[False for i in range(height * 16)] for j in range(width * 8)]
+    decoded_array = [[False for i in range(height * 8)] for j in range(width * 8)]
 
-    for i in range(0, width * height * 64, 2):
+    for i in range(0, width * height * 32):
         x = 2 * floor(i / (height * 8))
         
-        y = floor(i % (height * 8))
+        y = ceil(i / 2) % (height * 8)
 
-        decoded_array[y][x] = sprite_array[i]
-        decoded_array[y][x + 1] = sprite_array[i + 1]
+        decoded_array[y][x] = sprite_array[2 * i]
+        decoded_array[y][x + 1] = sprite_array[(2 * i) + 1]
 
+    #print("\n".join(["".join(map(lambda b: "1" if b else "0", y)) for y in decoded_array]))
     arr = delta_decode([item for subl in decoded_array for item in subl])
-    print(arr)
+
+    #print(arr)
     
     split_array = [["" for i in range(height * 8)] for j in range(width * 8)]
     for x in range(width * 8):
@@ -135,16 +148,22 @@ def decomp_sprite(rom, addr, dims, id):
                 #print("test")
                 #split_array.append([])
                 #print(len(split_array[0]))
-            split_array[y][x] = "1" if arr[x + y * height * 8] == True else "."
+            split_array[y][x] = "1" if arr[x + y * height * 8] == True else "0"
             #split_array[x][y + 1] = "1" if arr[y + 1 + x * height * 8] == True else "0"
     #print(split_array)
     #split_array = [ for x in range(width * 8) for y in range(height)]
+
+    p = [(0xff, 0xff, 0xff), (0x00, 0x00, 0x00)]
+    w = png.Writer(width * 8, height * 8, palette=p, bitdepth=1)
+    f = open("sprite.png", "wb")
+    w.write(f, [[1 if c else 0 for c in row] for row in decoded_array])
+    f.close()
 
     print()
 
     #print(pixels)
     output_list = "\n".join(["".join(split_array[i]) for i in range(len(split_array))])
-    print(output_list)
+    #print(output_list)
 
     #test_print_sprite(BytesIO(bitarray.bitarray(output_list).tobytes()), width, height)
 
@@ -224,8 +243,8 @@ def test_print_sprite(sprite_buffer, width, height):
 
         for bit in range(8 - 1, -1, -1):
             
-            pixel = (((value >> (bit + 8 - 1)) & 0x2) | ((value >> bit) & 0x1)) & 0x03
-            #pixel = (value >> bit) & 0x1
+            #pixel = (((value >> (bit + 8 - 1)) & 0x2) | ((value >> bit) & 0x1)) & 0x03
+            pixel = (value >> bit) & 0x1
 
             bits.append(pixel)
         
@@ -238,6 +257,7 @@ def test_print_sprite(sprite_buffer, width, height):
 
 if __name__ == "__main__":
     #test_print_sprite(BytesIO(b"\xFF\x00\x7E\xFF\x85\x81\x89\x83\x93\x85\xA5\x8B\xC9\x97\x7E\xFF"), 2, 2)
-    test_print_sprite(BytesIO(b"\x7C\x7C\x00\xC6\xC6\x00\x00\xFE\xC6\xC6\x00\xC6\xC6\x00\x00\x00"), 1, 1)
+    #test_print_sprite(BytesIO(b"\x7C\x7C\x00\xC6\xC6\x00\x00\xFE\xC6\xC6\x00\xC6\xC6\x00\x00\x00"), 1, 1)
     bit_iter = iter(bitarray.bitarray("01001101100110100011111110100011011110110101000"))
-    print(test_print_sprite(BytesIO(rle(bit_iter, 2, 2).tobytes()), 2, 2))
+    print(rle(bit_iter, 2, 2).to01())
+    #print(test_print_sprite(BytesIO(rle(bit_iter, 2, 2).tobytes()), 2, 2))
