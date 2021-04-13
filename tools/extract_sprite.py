@@ -118,44 +118,32 @@ def decomp_sprite(rom, addr, dims, id):
     decoded_array = [[False for i in range(height * 16)] for j in range(width * 8)]
 
     for i in range(0, width * height * 64, 2):
-        x = floor(i / (height * 8))
-        y = floor((i + 1) % (height * 8))
+        x = 2 * floor(i / (height * 8))
+        
+        y = floor(i % (height * 8))
 
         decoded_array[y][x] = sprite_array[i]
         decoded_array[y][x + 1] = sprite_array[i + 1]
 
     arr = delta_decode([item for subl in decoded_array for item in subl])
     print(arr)
+    
     split_array = [["" for i in range(height * 8)] for j in range(width * 8)]
     for x in range(width * 8):
-        for y in range(0, height * 8, 2):
+        for y in range(height * 8):
             #print(x, y)
                 #print("test")
                 #split_array.append([])
                 #print(len(split_array[0]))
-            split_array[x][y] = "1" if sprite_array[y + x * height * 8] == True else "0"
-            split_array[x][y + 1] = "1" if sprite_array[y + 1 + x * height * 8] == True else "0"
+            split_array[y][x] = "1" if arr[x + y * height * 8] == True else "."
+            #split_array[x][y + 1] = "1" if arr[y + 1 + x * height * 8] == True else "0"
     #print(split_array)
     #split_array = [ for x in range(width * 8) for y in range(height)]
-    
-    pixels = ["" for i in range(len(split_array))]
 
-    for y in range(len(split_array)):
-        s = ""
-        for x in range(len(split_array[y])):
-            s += split_array[y][x]
-        #for j in range(len(split_array[i])):
-        #print("".join(split_array[i]))
-        pixels[y] = s
-        #pixels[y] = ""
-        #print("".join(map(lambda x: "1" if x == True else "0", delta_decode([True if c == "1" else False for c in split_array[i]]))))
-        #print()
-        print(pixels[y])
-
-
+    print()
 
     #print(pixels)
-    output_list = "".join(["".join(pixels[i]) for i in range(len(pixels))])
+    output_list = "\n".join(["".join(split_array[i]) for i in range(len(split_array))])
     print(output_list)
 
     #test_print_sprite(BytesIO(bitarray.bitarray(output_list).tobytes()), width, height)
