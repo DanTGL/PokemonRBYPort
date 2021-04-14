@@ -16,4 +16,7 @@ typedef struct Move {
 
 bool is_super_effective(Move_t move, Pokemon_t* opponent);
 
+float get_effectiveness(Move_t move, Pokemon_t* opponent);
+uint8_t calculate_damage(Move_t move, Pokemon_t* pokemon, Pokemon_t* opponent);
+
 extern Move_t moves[];

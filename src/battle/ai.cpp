@@ -1,4 +1,4 @@
-#include "include/trainer.h"
+#include "include/battle/ai.h"
 
 #include "include/move.h"
 #include "include/effects.h"
@@ -22,7 +22,7 @@ void mod_1(Pokemon_t* pokemon, Pokemon_t* opponent, uint8_t priorityArray[4]) {
     while (statusMoveEffects[i] != -1) {
         for (uint8_t moveIndex = 0; moveIndex < MAX_MOVES; moveIndex++) {
             uint8_t move = pokemon->moves[moveIndex];
-            if (move == 0) continue;
+            if (move == 0 || moves[move].power != 0) continue;
 
             if (moves[move].effect == statusMoveEffects[i])
                 priorityArray[moveIndex] += 5;
@@ -60,7 +60,7 @@ void mod_3(Pokemon_t* pokemon, Pokemon_t* opponent, uint8_t priorityArray[4]) {
         uint8_t move = pokemon->moves[moveIndex];
         if (move == 0) continue;
         
-        priorityArray[moveIndex] += is_super_effective(moves[move], opponent) ? 1 : -1;
+        priorityArray[moveIndex] += is_super_effective(moves[move], opponent) ? -1 : 1;
     }
 }
 
@@ -73,7 +73,7 @@ uint8_t random_move() {
     else return 3;
 }
 
-void choose_move(uint8_t trainerIndex, Pokemon_t* pokemon, Pokemon_t* opponent) {
+uint8_t choose_move(uint8_t trainerIndex, Pokemon_t* pokemon, Pokemon_t* opponent) {
     uint8_t priority[MAX_MOVES] = {10, 10, 10, 10};
     
 
@@ -99,4 +99,15 @@ void choose_move(uint8_t trainerIndex, Pokemon_t* pokemon, Pokemon_t* opponent) 
         chosenMove = random_move();
     } while (priority[chosenMove] > min_priority);
 
+    return chosenMove;
+}
+
+uint8_t wild_choose_move(Pokemon_t* pokemon) {
+    uint8_t chosenMove;
+
+    do {
+        chosenMove = pokemon->moves[random_move()];
+    } while (chosenMove == 0);
+
+    return chosenMove;
 }

@@ -1,3 +1,3 @@
-#include "effects.h"
+#include "include/effects.h"
 
 void* moveEffects[];
