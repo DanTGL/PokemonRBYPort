@@ -1,7 +1,7 @@
-#include "include/battle/ai.h"
+#include "battle/ai.h"
 
-#include "include/move.h"
-#include "include/effects.h"
+#include "move.h"
+#include "effects.h"
 
 #include <stdlib.h>
 

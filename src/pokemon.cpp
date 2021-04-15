@@ -1,4 +1,4 @@
-#include "include/pokemon.h"
+#include "pokemon.h"
 #include <math.h>
 
 Species_t pokemonSpecies[151];
