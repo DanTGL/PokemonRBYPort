@@ -62,8 +62,19 @@ BattleState_t* start_battle(Player_t* player, Trainer_t* trainer) {
 
     // TODO: Initialize trainer
 
+    BattleState_t* battleState = (BattleState_t*) malloc(sizeof(BattleState_t));
 
-    return NULL;
+    battleState->battler1Type = PLAYER;
+    battleState->battler1 = player;
+
+    battleState->battler1Type = TRAINER;
+    battleState->battler2 = trainer;
+
+    return battleState;
+}
+
+void end_battle(BattleState_t* battleState) {
+    free(battleState);
 }
 
 void trainer_turn(Trainer_t* trainer, Player_t* player) {
