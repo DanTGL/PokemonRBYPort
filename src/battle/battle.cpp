@@ -7,6 +7,24 @@ uint8_t cur_pokemon_player;
 uint8_t cur_pokemon_trainer;
 uint8_t player_chosen_move = -1;
 
+enum BattlerType {
+    PLAYER,
+    TRAINER,
+    WILD
+};
+
+typedef struct {
+    BattlerType battler1Type;
+    void* battler1;
+    BattlerType battler2Type;
+    void* battler2;
+
+    uint8_t battler1CurPokemon = 0;
+    uint8_t battler2CurPokemon = 0;
+
+    bool battler1Turn = true;
+} BattleState_t;
+
 enum MoveResult : uint8_t {
     MISSED = 0,
     HIT = 1,
@@ -32,7 +50,7 @@ MoveResult use_move(uint8_t moveIndex, Pokemon_t* pokemon, Pokemon_t* opponent) 
     }
 }
 
-void start_battle(Player_t* player, Trainer_t* trainer) {
+BattleState_t* start_battle(Player_t* player, Trainer_t* trainer) {
     for (uint8_t i = 0; i < 6; i++) {
         if (player->pokemon[i].currentHP != 0) {
             cur_pokemon_player = i;
@@ -43,6 +61,9 @@ void start_battle(Player_t* player, Trainer_t* trainer) {
     cur_pokemon_trainer = 0;
 
     // TODO: Initialize trainer
+
+
+    return NULL;
 }
 
 void trainer_turn(Trainer_t* trainer, Player_t* player) {
@@ -97,7 +118,7 @@ bool defeated_pokemon(Pokemon_t* pokemon) {
 }
 
 void player_turn(Player_t* player, Pokemon_t* opponent) {
-    if (chosen_move != -1) {
+    if (player_chosen_move != -1) {
         
     }
 }
