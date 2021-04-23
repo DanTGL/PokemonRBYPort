@@ -1,4 +1,5 @@
 #include "battle/battle.h"
+#include "manager.h"
 
 #include <stdlib.h>
 
@@ -14,6 +15,7 @@ enum BattlerType {
 };
 
 typedef struct {
+    GameState_t* gameState;
     BattlerType battler1Type;
     void* battler1;
     BattlerType battler2Type;
@@ -30,6 +32,30 @@ enum MoveResult : uint8_t {
     HIT = 1,
     DEFEATED = 2
 };
+
+BattleState_t* start_battle(GameState_t* gameState, Player_t* player, Trainer_t* trainer) {
+    for (uint8_t i = 0; i < 6; i++) {
+        if (player->pokemon[i].currentHP != 0) {
+            cur_pokemon_player = i;
+            break;
+        }
+    }
+
+    // TODO: Initialize trainer
+    cur_pokemon_trainer = 0;
+
+
+    // Initialize Battle state
+    BattleState_t* battleState = (BattleState_t*) malloc(sizeof(BattleState_t));
+    battleState->gameState = gameState;
+    battleState->battler1Type = PLAYER;
+    battleState->battler1 = player;
+
+    battleState->battler1Type = TRAINER;
+    battleState->battler2 = trainer;
+
+    return battleState;
+}
 
 MoveResult use_move(uint8_t moveIndex, Pokemon_t* pokemon, Pokemon_t* opponent) {
     Move move = moves[moveIndex];
@@ -48,29 +74,6 @@ MoveResult use_move(uint8_t moveIndex, Pokemon_t* pokemon, Pokemon_t* opponent) 
         // Move missed
         return MISSED;
     }
-}
-
-BattleState_t* start_battle(Player_t* player, Trainer_t* trainer) {
-    for (uint8_t i = 0; i < 6; i++) {
-        if (player->pokemon[i].currentHP != 0) {
-            cur_pokemon_player = i;
-            break;
-        }
-    }
-
-    cur_pokemon_trainer = 0;
-
-    // TODO: Initialize trainer
-
-    BattleState_t* battleState = (BattleState_t*) malloc(sizeof(BattleState_t));
-
-    battleState->battler1Type = PLAYER;
-    battleState->battler1 = player;
-
-    battleState->battler1Type = TRAINER;
-    battleState->battler2 = trainer;
-
-    return battleState;
 }
 
 void end_battle(BattleState_t* battleState) {
